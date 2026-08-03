@@ -1,0 +1,918 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>DCF Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0d;--bg2:#141414;--bg3:#1a1a1a;--bg4:#222;--border:#2a2a2a;--border2:#333;--text:#e8e8e8;--text2:#999;--text3:#666;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--amber:#f59e0b;--teal:#14b8a6}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;font-size:12px;min-height:100vh}
+.wrap{max-width:1400px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
+.header-title{font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text)}
+.company-badge{font-size:11px;color:var(--amber);letter-spacing:.08em;text-transform:uppercase}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border2);margin-bottom:16px;overflow-x:auto}
+.tab{padding:7px 14px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.tab.active{color:var(--text);border-bottom:2px solid var(--amber)}
+.tab:hover:not(.active){color:var(--text2)}
+.sec{display:none}.sec.active{display:block}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px}
+.ct{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:8px}
+.lbl{font-size:11px;color:var(--text2);flex:1;line-height:1.3}
+.inp{width:120px;font-size:11px;padding:4px 8px;text-align:right;font-family:'Courier New',monospace;background:var(--bg4);border:1px solid var(--border2);border-radius:3px;color:var(--text);outline:none}
+.inp:focus{border-color:var(--amber)}
+.calc{font-size:11px;font-weight:700;color:var(--text);min-width:120px;text-align:right}
+.calc.pos{color:var(--green)}.calc.neg{color:var(--red)}.calc.amb{color:var(--amber)}
+.btn{padding:7px 18px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border2);background:var(--bg4);color:var(--text);border-radius:4px;transition:all .15s}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.btn-run{background:var(--amber);color:#000;border-color:var(--amber)}
+.btn-run:hover{opacity:.85;color:#000}
+.btn-xl{background:var(--green);color:#000;border-color:var(--green)}
+.btn-xl:hover{opacity:.85;color:#000}
+.drop-zone{border:1px dashed var(--border2);border-radius:8px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .15s}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--amber);background:var(--bg3)}
+.drop-title{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.drop-sub{font-size:11px;color:var(--text3)}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.metric{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+.metric-l{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
+.metric-v{font-size:16px;font-weight:700}
+.metric-s{font-size:10px;color:var(--text3);margin-top:2px}
+.metric-v.pos{color:var(--green)}.metric-v.neg{color:var(--red)}.metric-v.amb{color:var(--amber)}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:10px}
+table th{padding:5px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border2);font-weight:700;white-space:nowrap;text-align:right;background:var(--bg2)}
+table th:first-child{text-align:left;position:sticky;left:0;background:var(--bg2)}
+table td{padding:4px 8px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:right;color:var(--text)}
+table td:first-child{text-align:left;color:var(--text3);position:sticky;left:0;background:var(--bg3)}
+table tr:hover td{background:var(--bg4)}
+table tr:hover td:first-child{background:var(--bg4)}
+table tr.section-head td{background:var(--bg2);font-weight:700;color:var(--amber);font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-top:1px solid var(--border2)}
+table tr.subtotal td{font-weight:700;color:var(--text);border-top:1px solid var(--border2)}
+table tr.total td{font-weight:700;color:var(--amber);border-top:1px solid var(--border2);border-bottom:2px solid var(--border2)}
+/* SENSITIVITY */
+.sens-wrap{overflow-x:auto}
+.sens-tbl{border-collapse:collapse;font-size:10px}
+.sens-tbl th{padding:5px 10px;background:var(--bg2);border:1px solid var(--border2);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);white-space:nowrap;font-weight:700}
+.sens-tbl td{padding:4px 10px;border:1px solid var(--border);text-align:center;font-size:11px;white-space:nowrap;font-weight:600}
+.s-high{background:#065f46;color:#6ee7b7}.s-mid{background:#1e3a5f;color:#93c5fd}.s-low{background:#3b0764;color:#d8b4fe}.s-base{outline:2px solid var(--amber);outline-offset:-2px}
+.sep{border:none;border-top:1px solid var(--border);margin:.6rem 0}
+.fbox{background:var(--bg2);border-left:2px solid var(--amber);padding:.5rem .75rem;margin:.4rem 0;font-size:10px;color:var(--text2);line-height:1.9}
+.fbox span{color:var(--amber);font-weight:700}
+.sbox{font-size:10px;padding:.35rem .65rem;border-radius:4px;margin-bottom:.5rem}
+.sok{background:#052e16;color:var(--green);border:1px solid #166534}
+.swarn{background:#451a03;color:var(--amber);border:1px solid #92400e}
+.serr{background:#450a0a;color:var(--red);border:1px solid #991b1b}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:spin .6s linear infinite;margin-right:5px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.neg-val{color:var(--red)}.pos-val{color:var(--green)}.amb-val{color:var(--amber)}
+.trend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px;margin-bottom:12px}
+.trend{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:.5rem .65rem;text-align:center}
+.trend-l{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
+.trend-v{font-size:14px;font-weight:700;margin-top:2px}
+select.inp{width:auto;min-width:100px}
+.note{font-size:10px;color:var(--text3);font-style:italic;margin-top:6px;line-height:1.5}
+.implied-box{background:#1a1200;border:1px solid var(--amber);border-radius:6px;padding:10px 14px;margin-top:8px}
+.implied-title{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:6px;font-weight:700}
+</style>
+</head><body>
+<div class="wrap">
+<div class="header">
+  <div class="header-title">DCF Valuation Engine</div>
+  <div class="company-badge" id="co-badge">No file loaded</div>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="gT('up')">① Upload</div>
+  <div class="tab" onclick="gT('rv')">② Historical</div>
+  <div class="tab" onclick="gT('wc')">③ WACC</div>
+  <div class="tab" onclick="gT('as')">④ Assumptions</div>
+  <div class="tab" onclick="gT('nw')">⑤ NWC Schedule</div>
+  <div class="tab" onclick="gT('fc')">⑥ FCF Schedule</div>
+  <div class="tab" onclick="gT('vl')">⑦ Valuation</div>
+  <div class="tab" onclick="gT('sn')">⑧ Sensitivity</div>
+</div>
+
+<!-- ① UPLOAD -->
+<div class="sec active" id="s-up">
+  <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()">
+    <input type="file" id="fi" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+    <div class="drop-title">Drop Screener.in Excel here</div>
+    <div class="drop-sub">Any sector — IT · FMCG · Mining · Manufacturing · Pharma · Banking</div>
+  </div>
+  <div id="up-st" style="margin-top:10px"></div>
+  <div class="fbox" style="margin-top:12px">
+    <span>Parser:</span> Reads Data Sheet in 4 isolated sections — Annual P&L | Quarterly P&L (ignored) | Balance Sheet | Cash Flow<br>
+    <span>EBIT:</span> Always derived as PBT + Interest (never from the missing Operating Profit row)<br>
+    <span>COGS:</span> Raw Material + Change in Inventory (used for DIO/DPO calculation)<br>
+    <span>NWC₀:</span> AR<sub>actual</sub> + Inv<sub>actual</sub> − AP(COGS×DPO/365) — ensures ΔNWC Y1 = pure growth effect only
+  </div>
+</div>
+
+<!-- ② HISTORICAL -->
+<div class="sec" id="s-rv"><div id="rv-body"><p style="color:var(--text3)">Upload a file first.</p></div></div>
+
+<!-- ③ WACC -->
+<div class="sec" id="s-wc">
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Cost of Equity — CAPM</div>
+      <div class="row"><span class="lbl">Risk-Free Rate (%)</span><input class="inp" id="rfr" value="7.0" oninput="lW()"/></div>
+      <div class="row"><span class="lbl">Equity Risk Premium (%)</span><input class="inp" id="erp" value="5.5" oninput="lW()"/></div>
+      <div class="row"><span class="lbl">Beta (levered)</span><input class="inp" id="beta" value="1.10" oninput="lW()"/></div>
+      <div class="row"><span class="lbl">Ke = Rfr + β × ERP</span><span class="calc amb" id="ke_c">—</span></div>
+      <div class="sep"></div>
+      <div class="row"><span class="lbl">Pre-tax Cost of Debt (%)</span><input class="inp" id="cod" value="8.5" oninput="lW()"/></div>
+      <div class="row"><span class="lbl">Tax Rate (from file)</span><span class="calc" id="tax_c">—</span></div>
+      <div class="row"><span class="lbl">After-tax Kd</span><span class="calc" id="kd_c">—</span></div>
+    </div>
+    <div class="card">
+      <div class="ct">Capital Structure (from file)</div>
+      <div class="row"><span class="lbl">Market Cap (₹ Cr)</span><span class="calc" id="mc_c">—</span></div>
+      <div class="row"><span class="lbl">Total Debt (₹ Cr)</span><span class="calc" id="d_c">—</span></div>
+      <div class="row"><span class="lbl">Total Capital</span><span class="calc" id="tc_c">—</span></div>
+      <div class="row"><span class="lbl">Weight of Equity (We)</span><span class="calc" id="we_c">—</span></div>
+      <div class="row"><span class="lbl">Weight of Debt (Wd)</span><span class="calc" id="wd_c">—</span></div>
+      <div class="sep"></div>
+      <div class="row"><span class="lbl" style="font-weight:700;color:var(--text)">WACC</span><span class="calc amb" id="wacc_c" style="font-size:15px">—</span></div>
+      <div class="sep"></div>
+      <div class="row"><span class="lbl">Override WACC (%)</span><input class="inp" id="wacc_ov" placeholder="leave blank to auto" oninput="lW()"/></div>
+    </div>
+  </div>
+</div>
+
+<!-- ④ ASSUMPTIONS -->
+<div class="sec" id="s-as">
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Revenue & Margin Projections</div>
+      <div class="row"><span class="lbl">Forecast Horizon</span>
+        <select class="inp" id="nyr"><option value="5">5 yrs</option><option value="7">7 yrs</option><option value="10" selected>10 yrs</option></select></div>
+      <div class="row"><span class="lbl">Rev Growth Yr 1–3 (%)</span><input class="inp" id="g1" value="15"/></div>
+      <div class="row"><span class="lbl">Rev Growth Yr 4–6 (%)</span><input class="inp" id="g2" value="12"/></div>
+      <div class="row"><span class="lbl">Rev Growth Yr 7+ (%)</span><input class="inp" id="g3" value="8"/></div>
+      <div class="sep"></div>
+      <div class="row"><span class="lbl">EBIT Margin — Year 1 (%)</span><input class="inp" id="em1" value="11"/></div>
+      <div class="row"><span class="lbl">EBIT Margin — Steady State (%)</span><input class="inp" id="emss" value="14"/></div>
+      <div class="row"><span class="lbl">Margin reaches SS by year</span><input class="inp" id="mfy" value="7"/></div>
+      <div class="row"><span class="lbl">D&A % Revenue (hist auto-fill)</span><input class="inp" id="da_p" value="2.9"/></div>
+      <div class="row"><span class="lbl">Capex % Revenue (hist auto-fill)</span><input class="inp" id="cx_p" value="3.5"/></div>
+    </div>
+    <div class="card">
+      <div class="ct">WC Drivers — <span id="sector-lbl" style="color:var(--amber)">auto-detect</span></div>
+      <div class="sbox swarn" id="wc-note">Upload file to auto-populate</div>
+      <!-- COGS toggle: auto vs manual -->
+      <div class="row" style="align-items:flex-start;gap:6px;margin-bottom:2px">
+        <span class="lbl" style="padding-top:2px">COGS basis for DIO / DPO</span>
+        <div style="display:flex;flex-direction:column;gap:3px;min-width:110px">
+          <label style="font-size:10px;color:var(--text2);display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="radio" name="cogs_mode" id="cogs_auto" value="auto" checked onchange="onCogsModeChange()" style="accent-color:var(--amber)">
+            Auto (Raw Mat + ΔInv)
+          </label>
+          <label style="font-size:10px;color:var(--text2);display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="radio" name="cogs_mode" id="cogs_manual" value="manual" onchange="onCogsModeChange()" style="accent-color:var(--amber)">
+            Manual (full mfg COGS)
+          </label>
+        </div>
+      </div>
+      <!-- auto row -->
+      <div class="row" id="row-cogs-auto">
+        <span class="lbl" style="color:var(--text3);font-size:10px">Auto COGS (₹ Cr) — Raw Mat + ΔInv</span>
+        <span class="calc" id="cogs_auto_display" style="font-size:10px;color:var(--text3)">—</span>
+      </div>
+      <!-- manual row -->
+      <div class="row" id="row-cogs-manual" style="display:none">
+        <span class="lbl">Full manufacturing COGS (₹ Cr)
+          <div style="font-size:9px;color:var(--text3);margin-top:1px">Raw Mat + ΔInv + Power + Other Mfr Exp</div>
+        </span>
+        <input class="inp" id="cogs_manual_val" value="" placeholder="enter ₹ Cr" oninput="onCogsManualChange()"/>
+      </div>
+      <!-- hidden field that rest of model reads -->
+      <input type="hidden" id="cogs_p" value="40"/>
+      <!-- live DIO feedback -->
+      <div class="row" style="margin-bottom:2px">
+        <span class="lbl" style="font-size:10px;color:var(--text3)">Implied COGS % of Revenue</span>
+        <span class="calc" id="cogs_pct_display" style="font-size:10px;color:var(--amber)">—</span>
+      </div>
+      <div class="row"><span class="lbl">DSO — days sales outstanding</span><input class="inp" id="dso_t" value="89" oninput="liveNWC0()"/></div>
+      <div class="row" style="flex-direction:column;align-items:flex-start;gap:2px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <span class="lbl">DIO — days inventory outstanding</span>
+          <input class="inp" id="dio_t" value="212" oninput="liveNWC0()"/>
+        </div>
+        <div style="font-size:9px;color:var(--text3);padding-left:0" id="dio_hint">
+          Auto COGS → <span id="dio_auto_val">—</span> d &nbsp;|&nbsp; Full COGS → <span id="dio_full_val">—</span> d &nbsp;|&nbsp; <b>Editing above overrides both</b>
+        </div>
+      </div>
+      <div class="row"><span class="lbl">DPO — days payable outstanding</span><input class="inp" id="dpo_t" value="120" oninput="liveNWC0()"/></div>
+      <div class="row"><span class="lbl">Other CA % Revenue</span><input class="inp" id="oca_p" value="2" oninput="liveNWC0()"/></div>
+      <div class="row"><span class="lbl">Accruals % Revenue</span><input class="inp" id="ac_p" value="3" oninput="liveNWC0()"/></div>
+      <div class="row"><span class="lbl">NWC Base Y0 (₹ Cr, auto)</span><span class="calc amb" id="nwc0_c">—</span></div>
+      <div class="sep"></div>
+      <div class="row"><span class="lbl">Terminal Growth Rate (%)</span><input class="inp" id="tgr" value="5"/></div>
+      <div class="row"><span class="lbl">TV Method</span>
+        <select class="inp" id="tv_m"><option value="ggm" selected>Gordon Growth</option><option value="exit">Exit EBITDA Multiple</option></select></div>
+      <div class="row" id="ex_row" style="display:none"><span class="lbl">Exit EV/EBITDA Multiple</span><input class="inp" id="ex_m" value="15"/></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-top:8px">
+    <button class="btn btn-run" onclick="runAll()">▶ Run Full DCF</button>
+  </div>
+</div>
+
+<!-- ⑤ NWC -->
+<div class="sec" id="s-nw"><div id="nw-body"><p style="color:var(--text3)">Run DCF from Assumptions tab.</p></div></div>
+<!-- ⑥ FCF -->
+<div class="sec" id="s-fc"><div id="fc-body"><p style="color:var(--text3)">Run DCF from Assumptions tab.</p></div></div>
+<!-- ⑦ VAL -->
+<div class="sec" id="s-vl"><div id="vl-body"><p style="color:var(--text3)">Run DCF from Assumptions tab.</p></div></div>
+<!-- ⑧ SENS -->
+<div class="sec" id="s-sn"><div id="sn-body"><p style="color:var(--text3)">Run DCF from Assumptions tab.</p></div></div>
+</div>
+
+<script>
+let D={},R={};
+const TM={up:0,rv:1,wc:2,as:3,nw:4,fc:5,vl:6,sn:7};
+function gT(n){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('s-'+n).classList.add('active');document.querySelectorAll('.tab')[TM[n]].classList.add('active');liveNWC0();lW();}
+document.getElementById('tv_m').addEventListener('change',function(){document.getElementById('ex_row').style.display=this.value==='exit'?'flex':'none';});
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFile(e.dataTransfer.files[0])});
+
+// Helpers
+function v(id){return parseFloat(document.getElementById(id).value)||0;}
+function sv(id,val,d=1){if(val!=null&&isFinite(val)){document.getElementById(id).value=val.toFixed(d);}}
+function f0(x,sign=''){if(x==null||isNaN(x))return'—';const n=Math.round(x).toLocaleString('en-IN');return sign&&x>=0?'+'+n:n;}
+function f1(x){if(x==null||isNaN(x))return'—';return x.toFixed(1)+'%';}
+function f2(x){if(x==null||isNaN(x))return'—';return x.toFixed(2)+'%';}
+function f4(x){if(x==null||isNaN(x))return'—';return x.toFixed(4);}
+function cr(x){if(x==null||isNaN(x))return'—';return'₹'+Math.round(x).toLocaleString('en-IN');}
+function last(arr){if(!arr||!arr.length)return null;const n=arr.filter(x=>typeof x==='number'&&isFinite(x));return n.length?n[n.length-1]:null;}
+function lastN(arr,n){if(!arr)return[];return arr.filter(x=>typeof x==='number'&&isFinite(x)).slice(-n);}
+function cagr(arr,y){const n=arr.filter(x=>x>0);if(n.length<y+1)return null;return((n[n.length-1]/n[n.length-1-y])**(1/y)-1)*100;}
+
+function onCogsModeChange(){
+  const isManual = document.getElementById('cogs_manual').checked;
+  document.getElementById('row-cogs-auto').style.display   = isManual ? 'none'  : 'flex';
+  document.getElementById('row-cogs-manual').style.display = isManual ? 'flex'  : 'none';
+  if(!isManual && D.cogs_narrow!=null){
+    // revert to narrow auto value
+    document.getElementById('cogs_p').value = (D.cogs_narrow/D.rev_l*100).toFixed(1);
+    const el=document.getElementById('cogs_pct_display');
+    if(el) el.textContent=(D.cogs_narrow/D.rev_l*100).toFixed(1)+'%';
+    // reset DIO to auto-narrow
+    const dioEl=document.getElementById('dio_t');
+    if(dioEl&&D.inv_l&&D.cogs_narrow>0)
+      dioEl.value=(D.inv_l/D.cogs_narrow*365).toFixed(1);
+  }
+  liveNWC0();
+}
+
+function onCogsManualChange(){
+  const raw=parseFloat(document.getElementById('cogs_manual_val').value);
+  if(!raw||!D.rev_l) return;
+  const pct=raw/D.rev_l*100;
+  document.getElementById('cogs_p').value=pct.toFixed(2);
+  const el=document.getElementById('cogs_pct_display');
+  if(el) el.textContent=pct.toFixed(1)+'%';
+  // Auto-update DIO with the new COGS
+  const dioEl=document.getElementById('dio_t');
+  if(dioEl&&D.inv_l&&raw>0)
+    dioEl.value=(D.inv_l/raw*365).toFixed(1);
+  liveNWC0();
+}
+
+function calcNWC0(){
+  if(!D.rev_l)return 0;
+  const ap0=D.rev_l*(v('cogs_p')/100)*v('dpo_t')/365;
+  return(D.recv_l||0)+(D.inv_l||0)-ap0;
+}
+function liveNWC0(){const el=document.getElementById('nwc0_c');if(el){const n=calcNWC0();el.textContent=cr(n);el.className='calc '+(n<0?'neg':'amb');}}
+
+function getWACC(){
+  const ov=document.getElementById('wacc_ov').value.trim();
+  if(ov)return parseFloat(ov);
+  const rfr=v('rfr'),erp=v('erp'),beta=v('beta'),cod=v('cod'),tax=(D.taxRate||25)/100;
+  const ke=rfr+beta*erp,kd=cod*(1-tax);
+  const mc=D.mc_l||0,debt=D.borr_l||0,tot=mc+debt;
+  const we=tot>0?mc/tot:0.9;
+  return we*ke+(1-we)*kd;
+}
+function lW(){
+  const d=D||{};
+  const rfr=v('rfr'),erp=v('erp'),beta=v('beta'),cod=v('cod'),tax=(d.taxRate||25)/100;
+  const ke=rfr+beta*erp,kd=cod*(1-tax);
+  document.getElementById('ke_c').textContent=ke.toFixed(2)+'%';
+  document.getElementById('tax_c').textContent=((d.taxRate||25)).toFixed(1)+'%';
+  document.getElementById('kd_c').textContent=kd.toFixed(2)+'%';
+  const mc=d.mc_l||0,debt=d.borr_l||0,tot=mc+debt;
+  const we=tot>0?mc/tot:0.9,wd=1-we;
+  document.getElementById('mc_c').textContent=cr(mc);
+  document.getElementById('d_c').textContent=cr(debt);
+  document.getElementById('tc_c').textContent=cr(tot);
+  document.getElementById('we_c').textContent=(we*100).toFixed(1)+'%';
+  document.getElementById('wd_c').textContent=(wd*100).toFixed(1)+'%';
+  document.getElementById('wacc_c').textContent=(we*ke+wd*kd).toFixed(2)+'%';
+}
+
+// ── SECTION-AWARE PARSER ─────────────────────────────────────────────────────
+async function handleFile(file){
+  if(!file)return;
+  document.getElementById('up-st').innerHTML=`<div class="sbox swarn"><span class="spin"></span>Reading <b>${file.name}</b>…</div>`;
+  const ab=await file.arrayBuffer();
+  const wb=XLSX.read(ab,{type:'array',cellDates:true});
+  let allRows=[];
+  const ds=wb.Sheets['Data Sheet']||wb.Sheets['data sheet']||wb.Sheets[wb.SheetNames[0]];
+  allRows=XLSX.utils.sheet_to_json(ds,{header:1,defval:null});
+
+  // Split into sections by marker rows
+  const sections={pl:[],bs:[],cf:[],meta:[],derived:[]};
+  let cur='meta';
+  allRows.forEach(row=>{
+    if(!row)return;
+    const k=String(row[0]||'').trim().toLowerCase();
+    if(k==='profit & loss'){cur='pl';return;}
+    if(k==='quarters'||k==='quarterly'){cur='skip';return;}  // IGNORE quarterly
+    if(k==='balance sheet'){cur='bs';return;}
+    if(k==='cash flow:'||k==='cash flow'){cur='cf';return;}
+    if(k==='derived:'||k==='derived'){cur='derived';return;}
+    if(k==='meta'){cur='meta';return;}
+    if(cur!=='skip'&&sections[cur])sections[cur].push(row);
+  });
+
+  function buildLK(rows){
+    const lk={};
+    rows.forEach(row=>{
+      if(!row||row[0]==null)return;
+      const key=String(row[0]).trim().toLowerCase();
+      const nums=row.slice(1).filter(x=>typeof x==='number'&&isFinite(x));
+      if(nums.length){if(!lk[key])lk[key]=[];lk[key]=[...lk[key],...nums];}
+    });
+    return lk;
+  }
+
+  const PL=buildLK(sections.pl);
+  const BS=buildLK(sections.bs);
+  const CF=buildLK(sections.cf);
+  const META=buildLK([...sections.meta,...sections.derived,...allRows.slice(0,12)]);
+
+  function gPL(...keys){for(const k of keys){const kl=k.toLowerCase();if(PL[kl])return PL[kl];const m=Object.keys(PL).find(kk=>kk.includes(kl));if(m)return PL[m];}return null;}
+  function gBS(...keys){for(const k of keys){const kl=k.toLowerCase();if(BS[kl])return BS[kl];const m=Object.keys(BS).find(kk=>kk.includes(kl));if(m)return BS[m];}return null;}
+  function gCF(...keys){for(const k of keys){const kl=k.toLowerCase();if(CF[kl])return CF[kl];const m=Object.keys(CF).find(kk=>kk.includes(kl));if(m)return CF[m];}return null;}
+  function gMeta(...keys){for(const k of keys){const kl=k.toLowerCase();if(META[kl])return META[kl];const m=Object.keys(META).find(kk=>kk.includes(kl));if(m)return META[m];}return null;}
+
+  // ANNUAL P&L (pl section only — no quarterly contamination)
+  const salesA=lastN(gPL('sales'),10);
+  const rawmatA=lastN(gPL('raw material cost','raw material'),10);
+  const chginvA=lastN(gPL('change in inventory'),10);
+  const depA=lastN(gPL('depreciation'),10);
+  const intA=lastN(gPL('interest'),10);
+  const pbtA=lastN(gPL('profit before tax'),10);
+  const taxA=lastN(gPL('tax'),10);
+  const npA=lastN(gPL('net profit'),10);
+
+  // Years from Report Date in PL section
+  let plYears=[];
+  const rdRow=sections.pl.find(r=>r&&String(r[0]||'').trim()==='Report Date');
+  if(rdRow){plYears=rdRow.slice(1).map(c=>{
+    if(c instanceof Date)return c.getFullYear();
+    if(typeof c==='number'&&c>40000)return new Date(Math.round((c-25569)*86400000)).getFullYear();
+    return null;
+  }).filter(Boolean);}
+
+  // BALANCE SHEET
+  const recvA=lastN(gBS('receivables','debtors'),10);
+  const invA=lastN(gBS('inventory','inventories'),10);
+  const cashA=lastN(gBS('cash & bank','cash and bank'),10);
+  const borrA=lastN(gBS('borrowings'),10);
+  const othLA=lastN(gBS('other liabilities'),10);
+  const cfoA=lastN(gCF('cash from operating activity','cash from operations'),10);
+  const cfiA=lastN(gCF('cash from investing activity'),10);
+
+  const rev_l=last(salesA)||0;
+  const pbt_l=last(pbtA)||0;
+  const int_l=last(intA)||0;
+  const dep_l=last(depA)||0;
+  const tax_l=last(taxA)||0;
+  const np_l=last(npA)||0;
+  const recv_l=last(recvA)||0;
+  const inv_l=last(invA)||0;
+  const cash_l=last(cashA)||0;
+  const borr_l=last(borrA)||0;
+  const othL_l=last(othLA)||0;
+  const cfo_l=last(cfoA)||0;
+  const cfi_l=last(cfiA)||0;
+
+  // EBIT = PBT + Interest
+  const ebit_l=pbt_l+int_l;
+  const taxRate=pbt_l>0?tax_l/pbt_l*100:25;
+  const ebitm_hist=rev_l>0?ebit_l/rev_l*100:0;
+  const da_pct=rev_l>0?dep_l/rev_l*100:0;
+
+  // COGS — narrow (Raw Mat + ΔInv) and full (+ Power + Other Mfr Exp)
+  const rawmat_l=last(rawmatA)||0;
+  const chginv_l=last(chginvA)||0;
+  const cogs_narrow=rawmat_l+Math.abs(chginv_l);
+  const power_l=last(lastN(gPL("power and fuel","power","fuel"),10))||0;
+  const othermfr_l=last(lastN(gPL("other mfr. exp","other manufacturing","other mfr"),10))||0;
+  const cogs_full=cogs_narrow+power_l+othermfr_l;
+  const cogs_l=cogs_narrow;  // default; user can override via toggle
+  const cogs_pct=rev_l>0?cogs_l/rev_l*100:0;
+
+  // Historical WC ratios
+  const dso_hist=recv_l&&rev_l?recv_l/rev_l*365:45;
+  const dio_hist=inv_l&&cogs_l>0?inv_l/cogs_l*365:0;
+  // DPO: estimate AP from Other Liabilities
+  // Manufacturing/FMCG: AP ~50-60% of OtherLiab; Services: ~30-40%
+  const hasMfg=inv_l>0&&rev_l>0&&inv_l/rev_l>0.05;
+  const ap_frac=hasMfg?0.55:0.38;
+  const ap_est=othL_l*ap_frac;
+  const dpo_hist=cogs_l>0?ap_est/cogs_l*365:30;
+  const dpo_default=dpo_hist;
+  const sector=hasMfg?'Manufacturing / FMCG':'Services / IT';
+
+  // Capex from CFI
+  const capex_pct=rev_l>0?Math.min(Math.abs(cfi_l)/rev_l*100,15):4;
+
+  // CAGRs
+  const g3=cagr(salesA,Math.min(3,salesA.length-1));
+  const g5=cagr(salesA,Math.min(5,salesA.length-1));
+
+  // Shares
+  let adjSh=gMeta('adjusted equity shares in cr','adjusted equity shares');
+  let rawSh=gBS('no. of equity shares','number of shares')||gMeta('no. of equity shares');
+  let shares_cr;
+  if(adjSh&&adjSh.length)shares_cr=adjSh[adjSh.length-1];
+  else if(rawSh&&rawSh.length){const r=rawSh[rawSh.length-1];shares_cr=r>1e5?r/1e7:r;}
+
+  const mc_l=last(gMeta('market capitalization','market cap'))||0;
+  const price_l=last(gMeta('current price'))||0;
+
+  // Get company name
+  const cnRow=allRows.find(r=>r&&String(r[0]||'').toLowerCase().includes('company name'));
+  const company=cnRow?String(cnRow[1]||'Company'):'Company';
+
+  D={company,plYears,salesA,rawmatA,chginvA,depA,intA,pbtA,taxA,npA,recvA,invA,cashA,borrA,cfoA,cfiA,
+    rev_l,ebit_l,dep_l,int_l,pbt_l,tax_l,np_l,recv_l,inv_l,cash_l,borr_l,othL_l,cfo_l,cfi_l,
+    mc_l,price_l,shares_cr,taxRate,ebitm_hist,da_pct,cogs_pct,cogs_l,cogs_narrow,cogs_full,ap_est,
+    dso_hist,dio_hist,dpo_default,capex_pct,g3,g5,sector,hasMfg};
+
+  // Pre-fill all inputs
+  sv('dso_t',dso_hist);
+  sv('dpo_t',dpo_default);
+  sv('da_p',da_pct);
+  // Set hidden cogs_p to narrow default
+  document.getElementById('cogs_p').value = cogs_pct.toFixed(1);
+  // Populate COGS display fields
+  const el_auto = document.getElementById('cogs_auto_display');
+  if(el_auto) el_auto.textContent = cogs_narrow>0 ? '₹'+Math.round(cogs_narrow)+' Cr' : '—';
+  const el_pct = document.getElementById('cogs_pct_display');
+  if(el_pct) el_pct.textContent = cogs_pct.toFixed(1)+'%';
+  // Populate DIO hint both ways
+  const dio_auto  = inv_l&&cogs_narrow>0 ? (inv_l/cogs_narrow*365).toFixed(1) : '—';
+  const dio_full_ = inv_l&&cogs_full>0   ? (inv_l/cogs_full*365).toFixed(1)   : '—';
+  const h1=document.getElementById('dio_auto_val'); if(h1) h1.textContent=dio_auto;
+  const h2=document.getElementById('dio_full_val'); if(h2) h2.textContent=dio_full_;
+  // Pre-fill DIO with narrow default
+  sv('dio_t',inv_l&&cogs_narrow>0?inv_l/cogs_narrow*365:0,1);
+  // Pre-fill manual COGS field with full value as suggestion
+  const mf=document.getElementById('cogs_manual_val');
+  if(mf&&cogs_full>0) mf.placeholder='e.g. '+Math.round(cogs_full)+' (full mfg)';
+  sv('cx_p',capex_pct);
+  sv('em1',ebitm_hist*0.97);
+  sv('emss',ebitm_hist*1.15);
+  if(g3)sv('g1',Math.min(g3*1.0,40));
+  if(g5)sv('g2',Math.min(g5*0.85,30));
+  sv('g3',8,0);
+
+  document.getElementById('sector-lbl').textContent=sector;
+  document.getElementById('wc-note').className='sbox sok';
+  document.getElementById('wc-note').textContent=
+    `${sector} | DSO=${dso_hist.toFixed(1)}d | DPO≈${dpo_default.toFixed(1)}d | Auto COGS (Raw Mat+ΔInv)=₹${Math.round(cogs_narrow)}Cr (${cogs_pct.toFixed(1)}%) → DIO=${(inv_l&&cogs_narrow>0?(inv_l/cogs_narrow*365):0).toFixed(1)}d | Full Mfg COGS=₹${Math.round(cogs_full)}Cr (${rev_l>0?(cogs_full/rev_l*100).toFixed(1):'-'}%) → DIO=${(inv_l&&cogs_full>0?(inv_l/cogs_full*365):0).toFixed(1)}d`;
+  document.getElementById('co-badge').textContent=company;
+  document.getElementById('up-st').innerHTML=
+    `<div class="sbox sok">✓ <b>${company}</b> | Revenue (latest annual): ${cr(rev_l)} Cr | EBIT: ${cr(ebit_l)} Cr (${ebitm_hist.toFixed(1)}%) | Shares: ${shares_cr?shares_cr.toFixed(2)+' Cr':'—'} | Tax: ${taxRate.toFixed(1)}%</div>`;
+
+  liveNWC0();lW();buildReview();gT('rv');
+}
+
+function buildReview(){
+  const d=D;
+  const n=Math.min(5,d.salesA.length);
+  const sl=d.salesA.slice(-n);
+  const pbl=d.pbtA.slice(-n),inl=d.intA.slice(-n),dpl=d.depA.slice(-n),npl=d.npA.slice(-n);
+  const ebl=pbl.map((p,i)=>p!=null&&inl[i]!=null?p+inl[i]:null);
+  const rcl=d.recvA.slice(-n),ivl=d.invA.slice(-n);
+  const eml=sl.map((s,i)=>ebl[i]&&s?ebl[i]/s*100:null);
+  const ds5=sl.map((s,i)=>rcl[i]&&s?rcl[i]/s*365:null);
+  const di5=sl.map((s,i)=>{
+    const rm=d.rawmatA?d.rawmatA.slice(-n)[i]:null;
+    const ci=d.chginvA?d.chginvA.slice(-n)[i]:null;
+    const cg=rm!=null&&ci!=null?rm+Math.abs(ci):null;
+    return ivl[i]&&cg&&cg>0?ivl[i]/cg*365:null;
+  });
+  const yrs=d.plYears.slice(-n).map(y=>String(y));
+
+  const trends=[
+    {l:'Rev (latest)',v:d.rev_l/100,s:' Cr',d:0},{l:'EBIT Margin',v:d.ebitm_hist,s:'%'},
+    {l:'3Y CAGR',v:d.g3,s:'%'},{l:'5Y CAGR',v:d.g5,s:'%'},
+    {l:'DSO',v:d.dso_hist,s:'d'},{l:'DIO',v:d.dio_hist,s:'d'},
+    {l:'Tax Rate',v:d.taxRate,s:'%'},{l:'CFO/NP',v:d.np_l>0?d.cfo_l/d.np_l*100:null,s:'%'}
+  ];
+
+  let html=`<div class="trend-grid">${trends.map(t=>`<div class="trend"><div class="trend-l">${t.l}</div><div class="trend-v">${t.v!=null?(t.d!=null?t.v.toFixed(t.d||1):t.v.toFixed(1))+t.s:'—'}</div></div>`).join('')}</div>`;
+
+  // Historical P&L table
+  html+=`<div class="card"><div class="ct">Annual P&L — ₹ Crores (from annual section only, quarterly excluded)</div>
+  <div class="tbl-wrap"><table><thead><tr><th>Item</th>${yrs.map(y=>`<th>${y}</th>`).join('')}</tr></thead><tbody>
+  <tr><td>Revenue</td>${sl.map(x=>`<td>${f0(x)}</td>`).join('')}</tr>
+  <tr><td>Growth YoY</td>${sl.map((x,i)=>i>0&&sl[i-1]?`<td class="${(x/sl[i-1]-1)>=0?'pos-val':'neg-val'}">${((x/sl[i-1]-1)*100).toFixed(1)}%</td>`:'<td>—</td>').join('')}</tr>
+  <tr class="section-head"><td colspan="${n+1}">Profitability</td></tr>
+  <tr><td>EBIT (PBT + Interest)</td>${ebl.map(x=>`<td>${f0(x)}</td>`).join('')}</tr>
+  <tr><td>EBIT Margin</td>${eml.map(x=>`<td>${f1(x)}</td>`).join('')}</tr>
+  <tr><td>D&A</td>${dpl.map(x=>`<td>${f0(x)}</td>`).join('')}</tr>
+  <tr><td>EBITDA</td>${ebl.map((e,i)=>e!=null&&dpl[i]!=null?`<td>${f0(e+dpl[i])}</td>`:'<td>—</td>').join('')}</tr>
+  <tr><td>Net Profit</td>${npl.map(x=>`<td>${f0(x)}</td>`).join('')}</tr>
+  <tr class="section-head"><td colspan="${n+1}">Working Capital</td></tr>
+  <tr><td>Receivables</td>${rcl.map(x=>`<td>${f0(x)}</td>`).join('')}</tr>
+  <tr><td>DSO (days)</td>${ds5.map(x=>`<td>${x!=null?x.toFixed(1):'—'}</td>`).join('')}</tr>
+  ${d.hasMfg?`<tr><td>Inventory</td>${ivl.map(x=>`<td>${f0(x)}</td>`).join('')}</tr>
+  <tr><td>DIO (days)</td>${di5.map(x=>`<td>${x!=null?x.toFixed(1):'—'}</td>`).join('')}</tr>`:''}
+  </tbody></table></div></div>`;
+
+  html+=`<div class="g2" style="margin-top:12px">
+  <div class="card"><div class="ct">Balance Sheet (Latest)</div>
+    <div class="row"><span class="lbl">Receivables (AR)</span><span class="calc">${cr(d.recv_l)}</span></div>
+    <div class="row"><span class="lbl">Inventory</span><span class="calc">${cr(d.inv_l)}</span></div>
+    <div class="row"><span class="lbl">Cash & Bank</span><span class="calc">${cr(d.cash_l)}</span></div>
+    <div class="row"><span class="lbl">Borrowings (Debt)</span><span class="calc">${cr(d.borr_l)}</span></div>
+    <div class="row"><span class="lbl">Other Liabilities</span><span class="calc">${cr(d.othL_l)}</span></div>
+    <div class="row"><span class="lbl">Est. AP (${d.hasMfg?'55':'38'}% of OtherLiab)</span><span class="calc">${cr(d.ap_est)}</span></div>
+    <div class="sep"></div>
+    <div class="row"><span class="lbl">NWC Base Y0 (AR+Inv−AP)</span><span class="calc amb" id="nwc0_rv">—</span></div>
+  </div>
+  <div class="card"><div class="ct">Market Data & Cash Flow</div>
+    <div class="row"><span class="lbl">Current Price</span><span class="calc">${d.price_l?'₹'+d.price_l.toFixed(2):'—'}</span></div>
+    <div class="row"><span class="lbl">Market Cap</span><span class="calc">${cr(d.mc_l)}</span></div>
+    <div class="row"><span class="lbl">Shares (Adjusted, Cr)</span><span class="calc">${d.shares_cr?d.shares_cr.toFixed(2)+' Cr':'—'}</span></div>
+    <div class="row"><span class="lbl">Price verify (MC÷Shares)</span><span class="calc">${d.mc_l&&d.shares_cr?'₹'+(d.mc_l/d.shares_cr).toFixed(2):'—'}</span></div>
+    <div class="sep"></div>
+    <div class="row"><span class="lbl">CFO (latest year)</span><span class="calc">${cr(d.cfo_l)}</span></div>
+    <div class="row"><span class="lbl">CFI (latest year)</span><span class="calc">${cr(d.cfi_l)}</span></div>
+    <div class="row"><span class="lbl">Implied Capex</span><span class="calc">${cr(Math.abs(d.cfi_l))}</span></div>
+  </div></div>
+  <div style="display:flex;justify-content:flex-end;margin-top:10px">
+    <button class="btn" onclick="gT('wc')">Next: WACC →</button></div>`;
+
+  document.getElementById('rv-body').innerHTML=html;
+  setTimeout(()=>{const el=document.getElementById('nwc0_rv');if(el)el.textContent=cr(calcNWC0());},50);
+}
+
+function getG(i){return i<=3?v('g1')/100:i<=6?v('g2')/100:v('g3')/100;}
+function getEM(i){const m1=v('em1')/100,mss=v('emss')/100,fy=Math.max(1,v('mfy'));if(i>=fy)return mss;return m1+(mss-m1)*(i/fy);}
+
+function runAll(){
+  const d=D;
+  if(!d.rev_l){alert('Upload a Screener Excel file first.');gT('up');return;}
+  const n=parseInt(document.getElementById('nyr').value);
+  const wacc=getWACC()/100,tgr=v('tgr')/100;
+  if(wacc<=tgr){alert(`WACC (${(wacc*100).toFixed(2)}%) must exceed Terminal Growth Rate (${(tgr*100).toFixed(1)}%). Please fix.`);return;}
+  const tax=d.taxRate/100,daPct=v('da_p')/100,cxPct=v('cx_p')/100;
+  const cogsPct=v('cogs_p')/100;
+  const dso_t=v('dso_t'),dio_t=v('dio_t'),dpo_t=v('dpo_t');
+  const ocaPct=v('oca_p')/100,acPct=v('ac_p')/100;
+  const cash=d.cash_l||0,debt=d.borr_l||0,shares=d.shares_cr||1;
+
+  // NWC0 = AR_actual + Inv_actual − AP_formula (consistent base)
+  const cogs_hist_val=d.rev_l*cogsPct;
+  const ap0=cogs_hist_val*dpo_t/365;
+  const nwc0=(d.recv_l||0)+(d.inv_l||0)-ap0;
+
+  let rows=[],prevNWC=nwc0,prevRev=d.rev_l;
+  for(let i=1;i<=n;i++){
+    const g=getG(i),rev=prevRev*(1+g);
+    const cogs=rev*cogsPct;
+    const em=getEM(i),ebit=rev*em,nopat=ebit*(1-tax);
+    const da=rev*daPct,capex=rev*cxPct;
+    // DSO/DIO/DPO driven NWC — every item derived from formula
+    const ar=rev*dso_t/365;
+    const inv_f=cogs*dio_t/365;
+    const oca=rev*ocaPct;
+    const ap=cogs*dpo_t/365;
+    const accr=rev*acPct;
+    const nwc=ar+inv_f+oca-ap-accr;
+    const dNWC=nwc-prevNWC;
+    const fcf=nopat+da-capex-dNWC;
+    const df=1/Math.pow(1+wacc,i),pv=fcf*df;
+    rows.push({i,g,rev,cogs,em,ebit,ebitda:ebit+da,nopat,da,capex,ar,inv_f,oca,ap,accr,nwc,dNWC,fcf,df,pv});
+    prevNWC=nwc;prevRev=rev;
+  }
+
+  const pvFCF=rows.reduce((a,r)=>a+r.pv,0);
+  const lastR=rows[n-1];
+  let tv,tvLabel,tvMethod=document.getElementById('tv_m').value;
+  if(tvMethod==='ggm'){
+    tv=lastR.fcf*(1+tgr)/(wacc-tgr);
+    tvLabel=`Gordon Growth (FCF×(1+g)/(WACC−g), g=${(tgr*100).toFixed(1)}%)`;
+  } else {
+    const em=v('ex_m');tv=lastR.ebitda*em;tvLabel=`Exit Multiple (${em}x EV/EBITDA)`;
+  }
+  const pvTV=tv/Math.pow(1+wacc,n);
+  const ev=pvFCF+pvTV;
+  // Bridge: EV - Debt + Cash = Equity Value
+  const equityVal=ev-debt+cash;
+  const pps=equityVal/shares;
+  const curp=d.price_l||0;
+  const updown=curp>0?(pps-curp)/curp*100:null;
+
+  R={rows,pvFCF,tv,pvTV,ev,equityVal,pps,updown,wacc,tgr,n,cash,debt,shares,curp,
+     tvLabel,tvMethod,tax,nwc0,cogsPct,dso_t,dpo_t,dio_t,ocaPct,acPct,d,
+     ap0,cogs_hist_val};
+
+  buildNWC();buildFCF();buildVal();buildSens();gT('nw');
+}
+
+function buildNWC(){
+  const {rows,nwc0,d,dso_t,dio_t,dpo_t,ap0,cogs_hist_val}=R;
+  const yh=rows.map(r=>`<th>Y+${r.i}</th>`).join('');
+  let html=`<div class="fbox">
+    <span>AR(t)</span> = Revenue(t) × DSO / 365 &nbsp;|&nbsp;
+    <span>Inv(t)</span> = COGS(t) × DIO / 365 &nbsp;|&nbsp;
+    <span>AP(t)</span> = COGS(t) × DPO / 365<br>
+    <span>Operating NWC(t)</span> = AR + Inventory + Other CA − AP − Accruals<br>
+    <span>ΔNWC(t)</span> = NWC(t) − NWC(t−1) &nbsp;[+ve = cash outflow &nbsp;|&nbsp; −ve = cash inflow]<br>
+    <span>NWC₀ base</span> = AR<sub>actual</sub> (${f0(d.recv_l)}) + Inv<sub>actual</sub> (${f0(d.inv_l)}) − AP<sub>formula</sub> (${f0(ap0)}) = <span>${cr(nwc0)}</span>
+  </div>
+  <div class="tbl-wrap"><table><thead><tr>
+    <th>Item</th><th>Base Y0</th>${yh}
+  </tr></thead><tbody>
+  <tr class="section-head"><td colspan="${rows.length+2}">Drivers</td></tr>
+  <tr><td>Revenue (₹ Cr)</td><td>${f0(d.rev_l)}</td>${rows.map(r=>`<td>${f0(r.rev)}</td>`).join('')}</tr>
+  <tr><td>COGS — material (₹ Cr)</td><td>${f0(cogs_hist_val)}</td>${rows.map(r=>`<td>${f0(r.cogs)}</td>`).join('')}</tr>
+  <tr class="section-head"><td colspan="${rows.length+2}">NWC Components</td></tr>
+  <tr><td>Accounts Receivable [DSO=${dso_t.toFixed(1)}d]</td><td class="pos-val">${f0(d.recv_l)}</td>${rows.map(r=>`<td class="pos-val">${f0(r.ar)}</td>`).join('')}</tr>
+  <tr><td>Inventory [DIO=${dio_t.toFixed(1)}d]</td><td class="pos-val">${f0(d.inv_l)}</td>${rows.map(r=>`<td class="pos-val">${f0(r.inv_f)}</td>`).join('')}</tr>
+  <tr><td>Other Current Assets</td><td class="pos-val">0</td>${rows.map(r=>`<td class="pos-val">${f0(r.oca)}</td>`).join('')}</tr>
+  <tr><td>Accounts Payable [DPO=${dpo_t.toFixed(1)}d]</td><td class="neg-val">(${f0(ap0)})</td>${rows.map(r=>`<td class="neg-val">(${f0(r.ap)})</td>`).join('')}</tr>
+  <tr><td>Accrued Liabilities</td><td class="neg-val">0</td>${rows.map(r=>`<td class="neg-val">(${f0(r.accr)})</td>`).join('')}</tr>
+  <tr class="total"><td>Operating NWC (₹ Cr)</td><td>${f0(nwc0)}</td>${rows.map(r=>`<td>${f0(r.nwc)}</td>`).join('')}</tr>
+  <tr class="subtotal"><td>ΔNWC (₹ Cr) [+ve = outflow]</td><td>—</td>${rows.map(r=>`<td class="${r.dNWC>0?'neg-val':'pos-val'}">${r.dNWC>=0?'('+f0(r.dNWC)+')':f0(Math.abs(r.dNWC))}</td>`).join('')}</tr>
+  </tbody></table></div>`;
+  document.getElementById('nw-body').innerHTML=html;
+}
+
+function buildFCF(){
+  const {rows,pvFCF,tv,pvTV,ev,tax,tvLabel}=R;
+  const yh=rows.map(r=>`<th>Y+${r.i}</th>`).join('');
+  let html=`<div class="fbox">
+    <span>FCFF</span> = NOPAT + D&A − Capex − ΔNWC &nbsp;|&nbsp;
+    <span>NOPAT</span> = EBIT × (1 − Tax Rate) &nbsp;|&nbsp;
+    <span>PV(t)</span> = FCF(t) / (1 + WACC)^t
+  </div>
+  <div class="tbl-wrap"><table><thead><tr>
+    <th>Item</th>${yh}
+  </tr></thead><tbody>
+  <tr class="section-head"><td colspan="${rows.length+1}">Revenue Projections</td></tr>
+  <tr><td>Revenue (₹ Cr)</td>${rows.map(r=>`<td>${f0(r.rev)}</td>`).join('')}</tr>
+  <tr><td>Growth %</td>${rows.map(r=>`<td class="${r.g>=0?'pos-val':'neg-val'}">${(r.g*100).toFixed(1)}%</td>`).join('')}</tr>
+  <tr class="section-head"><td colspan="${rows.length+1}">From EBIT to NOPAT</td></tr>
+  <tr><td>EBIT Margin</td>${rows.map(r=>`<td>${(r.em*100).toFixed(1)}%</td>`).join('')}</tr>
+  <tr><td>EBIT (₹ Cr)</td>${rows.map(r=>`<td>${f0(r.ebit)}</td>`).join('')}</tr>
+  <tr><td>Tax @ ${(tax*100).toFixed(0)}%</td>${rows.map(r=>`<td class="neg-val">(${f0(r.ebit*tax)})</td>`).join('')}</tr>
+  <tr class="subtotal"><td>NOPAT (₹ Cr)</td>${rows.map(r=>`<td>${f0(r.nopat)}</td>`).join('')}</tr>
+  <tr class="section-head"><td colspan="${rows.length+1}">Adjustments</td></tr>
+  <tr><td>(+) D&A (₹ Cr)</td>${rows.map(r=>`<td class="pos-val">${f0(r.da)}</td>`).join('')}</tr>
+  <tr><td>(−) Capex (₹ Cr)</td>${rows.map(r=>`<td class="neg-val">(${f0(r.capex)})</td>`).join('')}</tr>
+  <tr><td>(−) ΔNWC (₹ Cr)</td>${rows.map(r=>`<td class="${r.dNWC>0?'neg-val':'pos-val'}">${r.dNWC>=0?'('+f0(r.dNWC)+')':f0(Math.abs(r.dNWC))}</td>`).join('')}</tr>
+  <tr class="total"><td>Free Cash Flow (₹ Cr)</td>${rows.map(r=>`<td class="${r.fcf>=0?'':'neg-val'}">${f0(r.fcf)}</td>`).join('')}</tr>
+  <tr class="section-head"><td colspan="${rows.length+1}">Discounting</td></tr>
+  <tr><td>Discount Factor (WACC=${(R.wacc*100).toFixed(2)}%)</td>${rows.map(r=>`<td>${f4(r.df)}</td>`).join('')}</tr>
+  <tr class="total"><td>PV of FCF (₹ Cr)</td>${rows.map(r=>`<td>${f0(r.pv)}</td>`).join('')}</tr>
+  </tbody></table></div>
+  <div class="card" style="margin-top:12px"><div class="ct">Terminal Value — ${tvLabel}</div>
+  <table><tbody>
+    <tr><td>Year ${R.n} FCF</td><td style="text-align:right">${f0(rows[R.n-1].fcf)} Cr</td></tr>
+    <tr><td>Terminal Value (undiscounted)</td><td style="text-align:right">${f0(R.tv)} Cr</td></tr>
+    <tr><td>Discount Factor (Y${R.n})</td><td style="text-align:right">${f4(rows[R.n-1].df)}</td></tr>
+    <tr class="total"><td>PV of Terminal Value</td><td style="text-align:right">${f0(R.pvTV)} Cr</td></tr>
+    <tr><td>TV as % of EV</td><td style="text-align:right">${(R.pvTV/R.ev*100).toFixed(1)}%</td></tr>
+  </tbody></table></div>`;
+  document.getElementById('fc-body').innerHTML=html;
+}
+
+function buildVal(){
+  const {pvFCF,pvTV,ev,equityVal,pps,updown,debt,cash,shares,curp,d}=R;
+  const ebitda0=(d.ebit_l||0)+(d.dep_l||0);
+  const pe0=d.np_l>0?pps*shares*100/d.np_l:null; // nope — shares already in pps
+  const pe_implied=d.np_l>0?pps/(d.np_l/shares):null;
+  const up=updown!=null?(updown>=0?'+':'')+updown.toFixed(1)+'% vs ₹'+curp.toFixed(2):'—';
+  const upcol=updown!=null?(updown>=0?'pos':'neg'):'';
+
+  let html=`<div class="metric-grid">
+    <div class="metric"><div class="metric-l">Enterprise Value</div><div class="metric-v amb">${f0(ev)} Cr</div></div>
+    <div class="metric"><div class="metric-l">Equity Value</div><div class="metric-v amb">${f0(equityVal)} Cr</div></div>
+    <div class="metric"><div class="metric-l">Intrinsic Price</div><div class="metric-v ${upcol}">₹${pps.toFixed(2)}</div><div class="metric-s">${up}</div></div>
+    <div class="metric"><div class="metric-l">WACC Used</div><div class="metric-v">${(R.wacc*100).toFixed(2)}%</div></div>
+    <div class="metric"><div class="metric-l">PV of FCFs</div><div class="metric-v">${f0(pvFCF)} Cr</div><div class="metric-s">${(pvFCF/ev*100).toFixed(1)}% of EV</div></div>
+    <div class="metric"><div class="metric-l">PV of TV</div><div class="metric-v">${f0(pvTV)} Cr</div><div class="metric-s">${(pvTV/ev*100).toFixed(1)}% of EV</div></div>
+    <div class="metric"><div class="metric-l">Implied EV/EBITDA</div><div class="metric-v">${ebitda0>0?(ev/ebitda0).toFixed(1)+'x':'—'}</div><div class="metric-s">on LTM EBITDA</div></div>
+    <div class="metric"><div class="metric-l">Implied P/E</div><div class="metric-v">${pe_implied?pe_implied.toFixed(1)+'x':'—'}</div></div>
+  </div>
+
+  <div class="card"><div class="ct">EV → Equity Bridge (Standard Method)</div>
+  <table><tbody>
+    <tr><td>Sum of PV of FCFs (${R.n} years)</td><td style="text-align:right">${cr(pvFCF)}</td></tr>
+    <tr><td>+ PV of Terminal Value</td><td style="text-align:right">+ ${cr(pvTV)}</td></tr>
+    <tr class="total"><td>= Enterprise Value (EV)</td><td style="text-align:right">${cr(ev)}</td></tr>
+    <tr><td>− Total Debt</td><td style="text-align:right">− ${cr(debt)}</td></tr>
+    <tr><td>+ Cash & Cash Equivalents</td><td style="text-align:right">+ ${cr(cash)}</td></tr>
+    <tr class="total"><td>= Equity Value</td><td style="text-align:right">${cr(equityVal)}</td></tr>
+    <tr><td>÷ Shares Outstanding</td><td style="text-align:right">÷ ${shares.toFixed(2)} Cr shares</td></tr>
+    <tr class="total"><td>= Intrinsic Value per Share</td><td style="text-align:right">₹${pps.toFixed(2)}</td></tr>
+    ${curp>0?`<tr><td>Current Market Price</td><td style="text-align:right">₹${curp.toFixed(2)}</td></tr>
+    <tr class="${updown>=0?'subtotal':''}"><td>${updown>=0?'Upside':'Downside to Market'}</td>
+    <td style="text-align:right;color:${updown>=0?'var(--green)':'var(--red)'}">₹${(pps-curp).toFixed(2)} (${up})</td></tr>`:''}
+  </tbody></table></div>`;
+
+  // What is the market pricing section
+  if(curp>0){
+    html+=`<div class="implied-box"><div class="implied-title">What is the market pricing in?</div>
+    <div style="font-size:10px;color:var(--text2);line-height:1.8">
+      At ₹${curp.toFixed(0)}/share: Market EV = ${cr(curp*shares+debt-cash)}<br>
+      Implied EV/EBITDA (LTM) = ${ebitda0>0?((curp*shares+debt-cash)/ebitda0).toFixed(1)+'x':'—'} &nbsp;|&nbsp;
+      Implied P/E (LTM) = ${d.np_l>0?(curp/(d.np_l/shares)).toFixed(1)+'x':'—'}<br>
+      To justify ₹${curp.toFixed(0)}, increase Revenue Growth and/or EBIT Margin in Assumptions and re-run.
+    </div></div>`;
+  }
+
+  html+=`<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+    <button class="btn btn-xl" id="xl-btn" onclick="exportXL()">Export DCF Excel ↗</button>
+    <span id="xl-st" style="font-size:10px;color:var(--text3);align-self:center"></span>
+  </div>`;
+  document.getElementById('vl-body').innerHTML=html;
+}
+
+function buildSens(){
+  const {rows,n,wacc,tgr,debt,cash,shares,curp}=R;
+  const wb=wacc*100,tb=tgr*100;
+  // Sensitivity 1: WACC vs TGR
+  const wR=[wb-2,wb-1,wb,wb+1,wb+2];
+  const tR=[tb-1.5,tb-0.75,tb,tb+0.75,tb+1.5];
+  function rP(w,t){
+    const wf=w/100,tf=t/100;if(wf<=tf)return null;
+    const pvs=rows.reduce((a,r,i)=>a+r.fcf/Math.pow(1+wf,i+1),0);
+    const tv2=rows[n-1].fcf*(1+tf)/(wf-tf);
+    return((pvs+tv2/Math.pow(1+wf,n))-debt+cash)/shares;
+  }
+  function cls(p){
+    if(p==null)return'';
+    if(curp<=0)return p>0?'s-mid':'s-low';
+    const d=(p-curp)/curp*100;
+    return d>15?'s-high':d>0?'s-mid':'s-low';
+  }
+  let t1=`<p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px">Table 1 — Price/Share (₹) by WACC vs Terminal Growth Rate (base case outlined)</p>
+  <div class="sens-wrap"><table class="sens-tbl"><thead><tr><th>WACC \\ TGR</th>${tR.map(t=>`<th>${t.toFixed(2)}%</th>`).join('')}</tr></thead><tbody>`;
+  wR.forEach(w=>{
+    t1+=`<tr><th>${w.toFixed(2)}%</th>`;
+    tR.forEach(t=>{const p=rP(w,t);const ib=Math.abs(w-wb)<0.01&&Math.abs(t-tb)<0.01;
+    t1+=`<td class="${cls(p)}${ib?' s-base':''}">${p!=null?'₹'+Math.round(p):'N/A'}</td>`;});
+    t1+=`</tr>`;
+  });
+  t1+=`</tbody></table></div>`;
+
+  // Sensitivity 2: Growth vs EBIT Margin
+  const gB=rows[0].g*100,mB=rows[0].em*100;
+  const gRng=[gB-4,gB-2,gB,gB+2,gB+4];
+  const mRng=[mB-2,mB-1,mB,mB+1,mB+2];
+  function rP2(gN,em){
+    const {tax,cogsPct,dso_t,dpo_t,dio_t,ocaPct,acPct,nwc0,d}=R;
+    let pNWC=nwc0,pRev=d.rev_l,fcfs=[];
+    for(let i=1;i<=n;i++){
+      const g=i<=3?gN/100:i<=6?v('g2')/100:v('g3')/100;
+      const rev=pRev*(1+g),cogs=rev*cogsPct;
+      const nopat=rev*(em/100)*(1-tax);
+      const da=rev*v('da_p')/100,capex=rev*v('cx_p')/100;
+      const nwc=rev*dso_t/365+cogs*dio_t/365+rev*ocaPct-cogs*dpo_t/365-rev*acPct;
+      fcfs.push(nopat+da-capex-(nwc-pNWC));pNWC=nwc;pRev=rev;
+    }
+    const pvs=fcfs.reduce((a,f,i)=>a+f/Math.pow(1+wacc,i+1),0);
+    const tv2=fcfs[n-1]*(1+tgr)/(wacc-tgr);
+    return((pvs+tv2/Math.pow(1+wacc,n))-debt+cash)/shares;
+  }
+  let t2=`<p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin:16px 0 8px">Table 2 — Price/Share (₹) by Revenue Growth (Yr1–3) vs EBIT Margin</p>
+  <div class="sens-wrap"><table class="sens-tbl"><thead><tr><th>G (Yr1-3) \\ EBIT%</th>${mRng.map(m=>`<th>${m.toFixed(1)}%</th>`).join('')}</tr></thead><tbody>`;
+  gRng.forEach(g=>{
+    t2+=`<tr><th>${g.toFixed(1)}%</th>`;
+    mRng.forEach(m=>{const p=rP2(g,m);const ib=Math.abs(g-gB)<0.01&&Math.abs(m-mB)<0.01;
+    t2+=`<td class="${cls(p)}${ib?' s-base':''}">${'₹'+Math.round(p)}</td>`;});
+    t2+=`</tr>`;
+  });
+  t2+=`</tbody></table></div>`;
+
+  const legend=`<div style="display:flex;gap:16px;margin-top:10px;font-size:10px;color:var(--text2);flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#065f46"></span> &gt;15% upside to market</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#1e3a5f"></span> 0–15% upside</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#3b0764"></span> Below market price</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;border:2px solid var(--amber)"></span> Base case</span>
+  </div>`;
+  document.getElementById('sn-body').innerHTML=t1+t2+legend;
+}
+
+function exportXL(){
+  if(!R||!R.rows||!R.rows.length){alert('Run the DCF first.');return;}
+  const btn=document.getElementById('xl-btn');
+  const st=document.getElementById('xl-st');
+  if(btn)btn.disabled=true;
+  if(st){st.textContent='Building Excel…';st.style.color='var(--amber)';}
+
+  const payload={
+    rows:R.rows, pvFCF:R.pvFCF, pvTV:R.pvTV, ev:R.ev, equityVal:R.equityVal,
+    pps:R.pps, updown:R.updown, wacc:R.wacc, tgr:R.tgr, n:R.n,
+    cash:R.cash, debt:R.debt, shares:R.shares, curp:R.curp,
+    tv:R.tv, tvLabel:R.tvLabel, tax:R.tax, nwc0:R.nwc0,
+    cogsPct:R.cogsPct, dso_t:R.dso_t, dio_t:R.dio_t, dpo_t:R.dpo_t,
+    ocaPct:R.ocaPct, acPct:R.acPct, ap0:R.ap0, cogs_hist_val:R.cogs_hist_val,
+    rfr:v('rfr'), erp:v('erp'), beta:v('beta'), cod:v('cod'),
+    g_r1:v('g1'), g_r2:v('g2'), g_r3:v('g3'),
+    em1:v('em1'), emss:v('emss'), mfy:v('mfy'),
+    da_p:v('da_p'), cx_p:v('cx_p'),
+    d:{
+      company:R.d.company||'Company',
+      rev_l:R.d.rev_l, ebit_l:R.d.ebit_l, dep_l:R.d.dep_l,
+      int_l:R.d.int_l, pbt_l:R.d.pbt_l, tax_l:R.d.tax_l,
+      np_l:R.d.np_l, recv_l:R.d.recv_l, inv_l:R.d.inv_l,
+      cash_l:R.d.cash_l, borr_l:R.d.borr_l, othL_l:R.d.othL_l,
+      mc_l:R.d.mc_l, price_l:R.d.price_l, shares_cr:R.d.shares_cr,
+      taxRate:R.d.taxRate, ebitm_hist:R.d.ebitm_hist,
+      da_pct:R.d.da_pct, cogs_pct:R.d.cogs_pct,
+      dso_hist:R.d.dso_hist, dio_hist:R.d.dio_hist,
+      g3:R.d.g3, g5:R.d.g5, sector:R.d.sector,
+      plYears:R.d.plYears||[],
+      salesA:R.d.salesA||[], pbtA:R.d.pbtA||[], intA:R.d.intA||[],
+      depA:R.d.depA||[], taxA:R.d.taxA||[], npA:R.d.npA||[],
+      recvA:R.d.recvA||[], invA:R.d.invA||[],
+      cashA:R.d.cashA||[], borrA:R.d.borrA||[],
+      cfoA:R.d.cfoA||[], cfiA:R.d.cfiA||[]
+    }
+  };
+
+  // Write payload then run builder via Claude API tool call
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:4096,
+      messages:[{role:'user',content:
+        'Run this Python code and respond with ONLY the base64 string on its own line prefixed with B64: and nothing else.\n\n```python\n'
+        +'import json,subprocess,base64\n'
+        +'payload='+JSON.stringify(JSON.stringify(payload))+'\n'
+        +'with open("/tmp/dcf_payload.json","w") as f: f.write(payload)\n'
+        +'r=subprocess.run(["python3","/home/claude/build_dcf_excel.py"],capture_output=True,text=True,timeout=90)\n'
+        +'if r.returncode!=0: print("ERROR:"+r.stderr[:800])\n'
+        +'else:\n'
+        +'  lines=[l for l in r.stdout.split("\\n") if l.startswith("SAVED:")]\n'
+        +'  path=lines[0].replace("SAVED:","").strip() if lines else ""\n'
+        +'  if path:\n'
+        +'    with open(path,"rb") as f: data=base64.b64encode(f.read()).decode()\n'
+        +'    print("B64:"+data)\n'
+        +'  else: print("ERROR:no path. stdout="+r.stdout[:300])\n'
+        +'```'
+      }]
+    })
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    const txt=(data.content||[]).map(b=>b.text||'').join('');
+    const m=txt.match(/B64:([A-Za-z0-9+/=\s]+)/);
+    if(m){
+      const b64=m[1].replace(/\s/g,'');
+      const bin=atob(b64);
+      const bytes=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='DCF_'+(R.d.company||'Company').replace(/\s+/g,'_')+'.xlsx';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if(st){st.textContent='✓ Downloaded!';st.style.color='var(--green)';}
+    } else {
+      const e=txt.match(/ERROR:(.+)/);
+      if(st){st.textContent='Error: '+(e?e[1].slice(0,80):'see console');st.style.color='var(--red)';}
+      console.error('Excel build error:\n'+txt);
+    }
+  })
+  .catch(err=>{
+    console.error(err);
+    if(st){st.textContent='API error — see console';st.style.color='var(--red)';}
+  })
+  .finally(()=>{if(btn)btn.disabled=false;});
+}
+
+
+</script>
+</body></html>
